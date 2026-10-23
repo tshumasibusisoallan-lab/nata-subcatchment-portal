@@ -1,4 +1,4 @@
-        // --- Navigation Logic (Page Switcher) ---
+            // --- Navigation Logic (Page Switcher) ---
         const navLinks = document.querySelectorAll('.nav-link');
         const sections = document.querySelectorAll('.page-section');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -95,12 +95,18 @@
             }
         }).addTo(map);
 
-        // Load NSCC Boundary data
-        if (typeof nsccBoundaryData !== 'undefined') {
-            catchmentBoundaryLayer.addData(nsccBoundaryData);
+        // Safely load NSCC Boundary (handles any QGIS variable name)
+        const boundaryData = typeof nsccBoundaryData !== 'undefined' ? nsccBoundaryData : 
+                             (typeof json_nsccbound !== 'undefined' ? json_nsccbound : 
+                             (typeof NSCC_BOUND !== 'undefined' ? NSCC_BOUND : null));
+
+        if (boundaryData) {
+            catchmentBoundaryLayer.addData(boundaryData);
             if (catchmentBoundaryLayer.getBounds().isValid()) {
                 map.fitBounds(catchmentBoundaryLayer.getBounds(), { padding: [30, 30] });
             }
+        } else {
+            console.warn("NSCC Boundary data variable not found in NSCCBOUND.js");
         }
 
         // 2. Nata Wards Layer
@@ -124,9 +130,15 @@
             }
         });
 
-        // Load Nata Wards data
-        if (typeof nataWardsData !== 'undefined') {
-            nataWardsLayer.addData(nataWardsData);
+        // Safely load Nata Wards (handles any QGIS variable name)
+        const wardsData = typeof nataWardsData !== 'undefined' ? nataWardsData : 
+                          (typeof json_natawards !== 'undefined' ? json_natawards : 
+                          (typeof json_natawads !== 'undefined' ? json_natawads : null));
+
+        if (wardsData) {
+            nataWardsLayer.addData(wardsData);
+        } else {
+            console.warn("Nata Wards data variable not found in wards.js");
         }
 
         // 3. Sample Boreholes Data
