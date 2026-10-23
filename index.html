@@ -12,6 +12,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Layer Data Scripts -->
+    <script src="NSCCBOUND.js"></script>
+    <script src="wards.js"></script>
+    <script src="script.js" defer></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         #map { height: 580px; width: 100%; z-index: 10; }
@@ -503,8 +509,8 @@
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA'
         }).addTo(map);
 
-        // Initialize empty Leaflet GeoJSON layer for Nata Catchment Boundary
-        const catchmentBoundaryLayer = L.geoJSON(null, {
+        // Initialize Leaflet GeoJSON layer for Nata Catchment Boundary (from NSCCBOUND.js)
+        const catchmentBoundaryLayer = L.geoJSON(typeof nsccBoundaryData !== 'undefined' ? nsccBoundaryData : null, {
             style: function(feature) {
                 return {
                     color: '#0284c7',
@@ -527,28 +533,38 @@
             }
         }).addTo(map);
 
-        // Dynamically fetch NSCC_BOUND.geojson from the 'layers' subfolder
-        fetch('layers/NSCC_BOUND.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                catchmentBoundaryLayer.addData(data);
-                // Auto-fit map viewport to match the extent of NSCC_BOUND.geojson
-                if (catchmentBoundaryLayer.getBounds().isValid()) {
-                    map.fitBounds(catchmentBoundaryLayer.getBounds(), { padding: [30, 30] });
-                }
-            })
-            .catch(error => {
-                console.error('Error loading layers/NSCC_BOUND.geojson:', error);
-            });
+        // Auto-fit map viewport to match the exact extent of NSCC_BOUND
+        if (catchmentBoundaryLayer.getBounds().isValid()) {
+            map.fitBounds(catchmentBoundaryLayer.getBounds(), { padding: [30, 30] });
+        }
 
-        // Layer Control (Only displaying the Catchment Boundary)
+        // Initialize Leaflet GeoJSON layer for Nata Wards (from wards.js)
+        const wardsLayer = L.geoJSON(typeof nataWardsData !== 'undefined' ? nataWardsData : null, {
+            style: function(feature) {
+                return {
+                    color: '#10b981',
+                    weight: 1.5,
+                    opacity: 0.8,
+                    fillColor: '#34d399',
+                    fillOpacity: 0.15
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                let popupText = `<div class="p-1"><strong class="font-bold text-emerald-200">Ward Details</strong><br>`;
+                if (feature.properties) {
+                    for (let key in feature.properties) {
+                        popupText += `<span class="text-xs text-slate-200 block"><strong>${key}:</strong> ${feature.properties[key]}</span>`;
+                    }
+                }
+                popupText += `</div>`;
+                layer.bindPopup(popupText, {className: 'custom-popup'});
+            }
+        }).addTo(map);
+
+        // Layer Control (Displaying the Catchment Boundary and Wards)
         const overlayMaps = {
-            "Catchment Boundary (NSCC)": catchmentBoundaryLayer
+            "Catchment Boundary (NSCC)": catchmentBoundaryLayer,
+            "Nata Wards": wardsLayer
         };
 
         L.control.layers(null, overlayMaps, { collapsed: false, position: 'topright' }).addTo(map);
